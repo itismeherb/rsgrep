@@ -1,6 +1,7 @@
 use walkdir::WalkDir;
 use std::fs;
 use std::io::Read;
+use std::collections::BTreeMap;
 use clap::Parser;
 use colored::*;
 use atty;
@@ -18,8 +19,6 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-
-    // Auto-detect if output is a TTY
     let use_color = atty::is(atty::Stream::Stdout);
 
     let pattern = if args.ignore_case {
@@ -30,51 +29,51 @@ fn main() {
 
     let walker = WalkDir::new(&args.path)
         .into_iter()
-        .filter_map(|e| e.ok());
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file());
 
-    // PARALLEL processing here
-    walker.par_bridge().for_each(|entry| {
-        if !entry.file_type().is_file() {
-            return;
-        }
+    let results: Vec<(String, Vec<(usize, String)>)> = walker.par_bridge()
+        .filter_map(|entry| {
+            if is_binary(entry.path()) { return None; }
 
-        // SKIP BINARY FILES
-        if is_binary(entry.path()) {
-            return;
-        }
-
-        if let Ok(content) = fs::read_to_string(entry.path()) {
+            let path_str = entry.path().display().to_string();
+            let content = fs::read_to_string(entry.path()).ok()?;
             let matches = find_matches(&pattern, &content, args.ignore_case);
+            if matches.is_empty() { return None; }
 
-            for (line_num, line) in matches {
-                let highlighted = highlight_line(line, &pattern, args.ignore_case, use_color);
+            Some((path_str, matches))
+        })
+        .collect();
 
-                if use_color {
-                    println!(
-                        "{}:{}: {}",
-                        entry.path().display().to_string().cyan(),
-                        line_num.to_string().yellow(),
-                        highlighted
-                    );
-                } else {
-                    println!("{}:{}: {}", entry.path().display(), line_num, line);
-                }
+    let mut files_matches = BTreeMap::new();
+    for (path, matches) in results {
+        files_matches.insert(path, matches);
+    }
+
+    for (path, mut matches) in files_matches {
+        println!("{}", path.cyan());
+
+        matches.sort_by_key(|(line_num, _)| *line_num);
+
+        for (line_num, line) in matches {
+            let highlighted = highlight_line(&line, &pattern, args.ignore_case, use_color);
+            if use_color {
+                println!("{}: {}", line_num.to_string().yellow(), highlighted);
+            } else {
+                println!("{}: {}", line_num, line);
             }
         }
-    });
+        println!();
+    }
 }
 
 fn is_binary(path: &std::path::Path) -> bool {
     const SAMPLE: usize = 8192;
 
-    let Ok(mut file) = std::fs::File::open(path) else {
-        return false;
-    };
+    let Ok(mut file) = std::fs::File::open(path) else { return false; };
 
     let mut buf = [0u8; SAMPLE];
-    let Ok(n) = file.read(&mut buf) else {
-        return false;
-    };
+    let Ok(n) = file.read(&mut buf) else { return false; };
 
     buf[..n].contains(&0)
 }
@@ -84,27 +83,18 @@ fn highlight_line(line: &str, pattern: &str, ignore_case: bool, use_color: bool)
         return line.to_string();
     }
 
-    let mut out = String::new();
-    let mut idx = 0;
-
-    let haystack = if ignore_case {
-        line.to_lowercase()
-    } else {
-        line.to_string()
-    };
-
+    let mut out = String::with_capacity(line.len() + 16);
+    let haystack = if ignore_case { line.to_lowercase() } else { line.to_string() };
     let pattern_len = pattern.len();
+    let mut idx = 0;
 
     while let Some(pos) = haystack[idx..].find(pattern) {
         let abs_pos = idx + pos;
-
         out.push_str(&line[idx..abs_pos]);
         out.push_str(&line[abs_pos..abs_pos + pattern_len].red().bold().to_string());
-
         idx = abs_pos + pattern_len;
     }
 
     out.push_str(&line[idx..]);
     out
 }
-

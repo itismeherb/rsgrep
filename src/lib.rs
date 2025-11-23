@@ -1,4 +1,4 @@
-pub fn find_matches<'a>(pattern: &str, content: &'a str, ignore_case: bool) -> Vec<(usize, &'a str)> {
+pub fn find_matches(pattern: &str, content: &str, ignore_case: bool) -> Vec<(usize, String)> {
     let mut result = Vec::new();
 
     for (line_num, line) in content.lines().enumerate() {
@@ -9,7 +9,7 @@ pub fn find_matches<'a>(pattern: &str, content: &'a str, ignore_case: bool) -> V
         };
 
         if cmp.contains(pattern) {
-            result.push((line_num + 1, line));
+            result.push((line_num + 1, line.trim_start().to_string()));
         }
     }
 
@@ -23,7 +23,7 @@ mod test {
     #[test]
     fn basic_match() {
         let content = "hello\nworld";
-        assert_eq!(find_matches("hello", content, false), vec![(1, "hello")]);
+        assert_eq!(find_matches("hello", content, false), vec![(1, "hello".to_string())]);
     }
 
     #[test]
@@ -35,6 +35,7 @@ mod test {
     #[test]
     fn ignore_case() {
         let content = "HELLO\nworld";
-        assert_eq!(find_matches("hello", content, true), vec![(1, "HELLO")]);
+        assert_eq!(find_matches("hello", content, true), vec![(1, "HELLO".to_string())]);
     }
 }
+
