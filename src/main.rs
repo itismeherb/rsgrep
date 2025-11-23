@@ -1,13 +1,14 @@
 use walkdir::WalkDir;
-use std::fs;
-use std::io::Read;
 use std::collections::BTreeMap;
 use clap::Parser;
-use colored::*;
 use atty;
 use rayon::prelude::*;
+use colored::*;
+use std::fs;
 
-use rsgrep::find_matches;
+use rsgrep::search::find_matches;
+use rsgrep::highlight::highlight_line;
+use rsgrep::fs_utils::is_binary;
 
 #[derive(Parser)]
 struct Args {
@@ -67,34 +68,3 @@ fn main() {
     }
 }
 
-fn is_binary(path: &std::path::Path) -> bool {
-    const SAMPLE: usize = 8192;
-
-    let Ok(mut file) = std::fs::File::open(path) else { return false; };
-
-    let mut buf = [0u8; SAMPLE];
-    let Ok(n) = file.read(&mut buf) else { return false; };
-
-    buf[..n].contains(&0)
-}
-
-fn highlight_line(line: &str, pattern: &str, ignore_case: bool, use_color: bool) -> String {
-    if !use_color {
-        return line.to_string();
-    }
-
-    let mut out = String::with_capacity(line.len() + 16);
-    let haystack = if ignore_case { line.to_lowercase() } else { line.to_string() };
-    let pattern_len = pattern.len();
-    let mut idx = 0;
-
-    while let Some(pos) = haystack[idx..].find(pattern) {
-        let abs_pos = idx + pos;
-        out.push_str(&line[idx..abs_pos]);
-        out.push_str(&line[abs_pos..abs_pos + pattern_len].red().bold().to_string());
-        idx = abs_pos + pattern_len;
-    }
-
-    out.push_str(&line[idx..]);
-    out
-}
