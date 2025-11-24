@@ -1,4 +1,4 @@
-use walkdir::WalkDir;
+use ignore::{WalkBuilder, DirEntry};
 use std::collections::{BTreeMap, HashSet};
 use clap::Parser;
 use atty;
@@ -83,6 +83,16 @@ struct Args {
     hidden: bool,
 }
 
+fn should_ignore(entry: &DirEntry, args: &Args) -> bool {
+    if entry.path().is_dir() {
+        return false;
+    }
+    if !args.hidden && is_hidden(entry.path()) {
+        return true;
+    }
+    false
+}
+
 fn main() {
     let args = Args::parse();
     let use_color = atty::is(atty::Stream::Stdout);
@@ -93,15 +103,16 @@ fn main() {
         args.pattern.clone()
     };
 
-    let walker = WalkDir::new(&args.path)
+    let walker = WalkBuilder::new(&args.path)
+        .hidden(!args.hidden)         // hide hidden unless --hidden
         .follow_links(false)
-        .into_iter()
-        .filter_entry(|e| {
-            args.hidden || !is_hidden(e.path())
-        })
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file());
-
+        .git_ignore(true)             // respect .gitignore
+        .git_global(true)
+        .git_exclude(true)
+        .build()
+        .filter_map(|res| res.ok())
+        .filter(|entry| entry.file_type().map(|t| t.is_file()).unwrap_or(false))
+        .filter(|entry| !should_ignore(entry, &args));
 
     let results: Vec<(String, Vec<(usize, String, bool)>)> = walker
         .par_bridge()
