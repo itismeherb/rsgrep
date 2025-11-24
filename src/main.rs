@@ -23,14 +23,15 @@ struct Args {
     )]
     only_filenames: bool,
 
-    #[arg(short = 'c',
+    #[arg(
+        short = 'c',
         long,
         help = "Only display the number of matches per file"
     )]
     count: bool,
 
     #[arg(
-        short,
+        short = 'i',
         long,
         help = "Perform a case-insensitive search"
     )]
@@ -39,7 +40,7 @@ struct Args {
     #[arg(
         short = 'n',
         long,
-        help = "Do not display line numbers",
+        help = "Do not display line numbers", 
         default_value_t = false,
         action = ArgAction::SetTrue
     )]
@@ -61,6 +62,13 @@ struct Args {
         action = ArgAction::SetTrue
     )]
     relative_paths: bool,
+
+    #[arg(
+        short = 'v',
+        long,
+        help = "Invert match: show lines that do NOT match"
+    )]
+    invert_match: bool,
 }
 
 fn main() {
@@ -101,18 +109,36 @@ fn main() {
                 .map(|l| l.to_string())
                 .collect();
 
-            let matches = find_matches(&pattern, &content_lines.join("\n"), args.ignore_case);
+            let matches_raw = find_matches(&pattern, &content_lines.join("\n"), args.ignore_case);
+            let match_lines: std::collections::HashSet<usize> =
+                matches_raw.iter().map(|(ln, _)| *ln).collect();
+
+            let mut matches: Vec<(usize, String, bool)> = content_lines
+                .iter()
+                .enumerate()
+                .map(|(i, line)| {
+                    let line_num = i + 1;
+                    (line_num, line.clone(), match_lines.contains(&line_num))
+                })
+                .collect();
+
+            if args.invert_match {
+                matches.retain(|(_, _, is_match)| !*is_match);
+            } else {
+                if matches.iter().all(|(_, _, is_match)| !*is_match) {
+                    return None;
+                }
+            }
+
+            if args.context > 0 && !args.invert_match {
+                matches = with_context(&matches, &content_lines, args.context);
+            }
+
             if matches.is_empty() {
                 return None;
             }
 
-            let matches_with_context = if args.context > 0 {
-                with_context(&matches, &content_lines, args.context)
-            } else {
-                matches.into_iter().map(|(ln, l)| (ln, l, true)).collect()
-            };
-
-            Some((path_str, matches_with_context))
+            Some((path_str, matches))
         })
         .collect();
 
@@ -135,7 +161,7 @@ fn main() {
         }
 
         for (line_num, line, is_match) in matches {
-            let highlighted = if is_match {
+            let highlighted = if is_match && !args.invert_match {
                 highlight_line(&line, &pattern, args.ignore_case, use_color)
             } else {
                 line.clone()
