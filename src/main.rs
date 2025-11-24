@@ -17,28 +17,61 @@ struct Args {
     pattern: String,
     path: String,
 
-    #[arg(short = 'l', long, help = "Only display filenames that contain matches")]
+    #[arg(
+        short = 'l',
+        long,
+        help = "Only display filenames that contain matches",
+    )]
     only_filenames: bool,
 
-    #[arg(short = 'c', long, help = "Only display the number of matches per file")]
+    #[arg(
+        short = 'c',
+        long,
+        help = "Only display the number of matches per file",
+    )]
     count: bool,
 
-    #[arg(short = 'i', long, help = "Perform a case-insensitive search")]
+    #[arg(
+        short = 'i',
+        long,
+        help = "Perform a case-insensitive search",
+    )]
     ignore_case: bool,
 
-    #[arg(short = 'n', long, help = "Do not display line numbers", default_value_t = false, action = ArgAction::SetTrue)]
+    #[arg(
+        short = 'n',
+        long,
+        help = "Do not display line numbers",
+    )]
     no_line_numbers: bool,
 
-    #[arg(short = 'C', long, help = "Show N lines of context around each match", default_value_t = 0)]
+    #[arg(
+        short = 'C',
+        long,
+        help = "Show N lines of context around each match",
+        default_value_t = 0,
+    )]
     context: usize,
 
-    #[arg(short = 'r', long, help = "Print file paths relative to the search path", default_value_t = false, action = ArgAction::SetTrue)]
+    #[arg(
+        short = 'r',
+        long,
+        help = "Print file paths relative to the search path",
+    )]
     relative_paths: bool,
 
-    #[arg(short = 'v', long, help = "Invert match: show lines that do NOT match")]
+    #[arg(
+        short = 'v',
+        long,
+        help = "Invert match: show lines that do NOT match",
+    )]
     invert_match: bool,
 
-    #[arg(short = 's', long, help = "Summarize the search")]
+    #[arg(
+        short = 's',
+        long,
+        help = "Summarize the search",
+    )]
     summarize: bool,
 }
 
