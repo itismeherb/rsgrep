@@ -10,6 +10,7 @@ use rsgrep::search::find_matches;
 use rsgrep::context::with_context;
 use rsgrep::highlight::highlight_line;
 use rsgrep::fs_utils::is_binary;
+use rsgrep::summary::summarize;
 
 #[derive(Parser)]
 struct Args {
@@ -36,6 +37,9 @@ struct Args {
 
     #[arg(short = 'v', long, help = "Invert match: show lines that do NOT match")]
     invert_match: bool,
+
+    #[arg(short = 's', long, help = "Summarize the search")]
+    summarize: bool,
 }
 
 fn main() {
@@ -180,6 +184,10 @@ fn main() {
                 }
             }
         }
+    }
+
+    if args.summarize {
+        summarize(&files_matches, use_color);
     }
 }
 
