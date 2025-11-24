@@ -18,28 +18,28 @@ struct Args {
     #[arg(
         short = 'l', 
         long,
-        help = "",
+        help = "Only display filenames that contain matches",
     )]
     only_filenames: bool,
 
     #[arg(
         short = 'c',
         long,
-        help = "",
+        help = "Only display the number of matches per file",
     )]
     count: bool,
 
     #[arg(
         short, 
         long,
-        help = "",
+        help = "Perform a case-insensitive search",
     )]
     ignore_case: bool,
 
     #[arg(
         short = 'n', 
         long,
-        help = "",
+        help = "Do not display line numbers in the output",
         default_value_t = false,
         action = ArgAction::SetTrue,
     )]
