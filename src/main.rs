@@ -1,6 +1,6 @@
 use walkdir::WalkDir;
 use std::collections::BTreeMap;
-use clap::Parser;
+use clap::{Parser, ArgAction};
 use atty;
 use rayon::prelude::*;
 use colored::*;
@@ -14,8 +14,17 @@ use rsgrep::fs_utils::is_binary;
 struct Args {
     pattern: String,
     path: String,
+
     #[arg(short, long)]
     ignore_case: bool,
+
+    #[arg(
+        short = 'n', 
+        long,
+        default_value_t = false,
+        action = ArgAction::SetTrue
+    )]
+    no_line_numbers: bool,
 }
 
 fn main() {
@@ -53,15 +62,22 @@ fn main() {
 
     for (path, mut matches) in files_matches {
         println!("{}", path.cyan());
-
         matches.sort_by_key(|(line_num, _)| *line_num);
 
         for (line_num, line) in matches {
             let highlighted = highlight_line(&line, &pattern, args.ignore_case, use_color);
             if use_color {
-                println!("{}: {}", line_num.to_string().yellow(), highlighted);
+                if !args.no_line_numbers {
+                    println!("{}: {}", line_num.to_string().yellow(), highlighted);
+                } else {
+                    println!("{}", highlighted);
+                }
             } else {
-                println!("{}: {}", line_num, line);
+                if !args.no_line_numbers {
+                    println!("{}: {}", line_num, line);
+                } else {
+                    println!("{}", line);
+                }
             }
         }
         println!();
