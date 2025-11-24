@@ -18,23 +18,30 @@ struct Args {
     #[arg(
         short = 'l', 
         long,
+        help = "",
     )]
     only_filenames: bool,
 
     #[arg(
         short = 'c',
-        long
+        long,
+        help = "",
     )]
     count: bool,
 
-    #[arg(short, long)]
+    #[arg(
+        short, 
+        long,
+        help = "",
+    )]
     ignore_case: bool,
 
     #[arg(
         short = 'n', 
         long,
+        help = "",
         default_value_t = false,
-        action = ArgAction::SetTrue
+        action = ArgAction::SetTrue,
     )]
     no_line_numbers: bool,
 }
