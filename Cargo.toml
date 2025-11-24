@@ -1,6 +1,6 @@
 [package]
 name = "rsgrep"
-version = "1.7.3"
+version = "1.7.4"
 edition = "2024"
 description = "rsgrep is a high-performance, user-friendly search tool for recursively scanning files."
 license = "UNILICENSE"
