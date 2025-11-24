@@ -1,6 +1,6 @@
 use walkdir::WalkDir;
 use std::collections::{BTreeMap, HashSet};
-use clap::{Parser, ArgAction};
+use clap::Parser;
 use atty;
 use rayon::prelude::*;
 use colored::*;
@@ -11,6 +11,7 @@ use rsgrep::context::with_context;
 use rsgrep::highlight::highlight_line;
 use rsgrep::fs_utils::is_binary;
 use rsgrep::summary::summarize;
+use rsgrep::hidden::is_hidden;
 
 #[derive(Parser)]
 struct Args {
@@ -73,6 +74,13 @@ struct Args {
         help = "Summarize the search",
     )]
     summarize: bool,
+
+    #[arg(
+        short = 'H',
+        long,
+        help = "Includes hidden files and directories",
+    )]
+    hidden: bool,
 }
 
 fn main() {
@@ -86,9 +94,14 @@ fn main() {
     };
 
     let walker = WalkDir::new(&args.path)
+        .follow_links(false)
         .into_iter()
+        .filter_entry(|e| {
+            args.hidden || !is_hidden(e.path())
+        })
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file());
+
 
     let results: Vec<(String, Vec<(usize, String, bool)>)> = walker
         .par_bridge()
