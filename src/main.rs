@@ -15,6 +15,12 @@ struct Args {
     pattern: String,
     path: String,
 
+    #[arg(
+        short = 'l', 
+        long,
+    )]
+    only_filenames: bool,
+
     #[arg(short, long)]
     ignore_case: bool,
 
@@ -62,6 +68,11 @@ fn main() {
 
     for (path, mut matches) in files_matches {
         println!("{}", path.cyan());
+
+        if args.only_filenames {
+            continue;
+        } 
+
         matches.sort_by_key(|(line_num, _)| *line_num);
 
         for (line_num, line) in matches {
