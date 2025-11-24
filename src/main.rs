@@ -21,6 +21,12 @@ struct Args {
     )]
     only_filenames: bool,
 
+    #[arg(
+        short = 'c',
+        long
+    )]
+    count: bool,
+
     #[arg(short, long)]
     ignore_case: bool,
 
@@ -72,6 +78,11 @@ fn main() {
         if args.only_filenames {
             continue;
         } 
+
+        if args.count {
+            println!(": {}", matches.len());
+            continue;
+        }
 
         matches.sort_by_key(|(line_num, _)| *line_num);
 
